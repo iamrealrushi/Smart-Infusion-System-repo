@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>DoseMate Syringe Infusion Pump</title>
+<style>
+  :root{ --header-h:70px; }
+  *{
+    margin:0; padding:0; box-sizing:border-box;
+    -webkit-touch-callout:none;
+    -webkit-user-select:none;
+    user-select:none;
+    -webkit-tap-highlight-color:transparent;
+    font-family:"Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+  }
+  body{
+    background:#f2f4f8; color:#1a1a1a;
+    width:100vw; height:100vh;
+    overflow:hidden; display:flex; flex-direction:column;
+  }
+  .header{
+    height:var(--header-h);
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    color:#fff; display:flex; align-items:center; justify-content:space-between;
+    padding:0 16px;
+  }
+  .title{ font-size:20px; font-weight:600; }
+  .sub{ font-size:11px; opacity:.9; }
+  .clock{
+    min-width:140px; text-align:right; line-height:1.2;
+    background:rgba(255,255,255,.15);
+    padding:6px 10px; border-radius:10px; font-size:12px;
+  }
+  .main{ height:calc(100vh - var(--header-h)); overflow:hidden; }
+
+  .screen{
+    display:none; height:100%;
+    overflow:auto; -webkit-overflow-scrolling:touch;
+    padding:16px;
+  }
+  .screen.active{ display:block; }
+
+  /* Home tiles */
+  .home-grid{
+    height:100%;
+    display:grid;
+    grid-template-columns:repeat(3,1fr);
+    grid-template-rows:repeat(2,1fr);
+    grid-gap:12px;
+  }
+  .tile{
+    border:none; border-radius:16px; color:#fff;
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    box-shadow:0 8px 16px rgba(0,0,0,.25);
+    font-size:16px; padding:10px;
+  }
+  .ico{ margin-bottom:6px; }
+  .ico svg{ width:28px; height:28px; fill:#fff; }
+
+  .card{
+    background:#fff; border-radius:16px;
+    border:2px solid #e0e0e0;
+    box-shadow:0 8px 16px rgba(0,0,0,.08);
+    padding:12px; margin-bottom:12px;
+  }
+  .section{
+    font-size:16px; font-weight:600; color:#4a4a4a;
+    margin-bottom:8px; display:flex; gap:6px; align-items:center;
+  }
+  .hint{ font-size:12px; color:#666; margin-bottom:8px; }
+
+  .form2{
+    display:grid; grid-template-columns:1fr 1fr; grid-gap:12px;
+  }
+  .fg{ display:flex; flex-direction:column; }
+  .fg label{
+    font-size:13px; font-weight:600; color:#333; margin-bottom:4px;
+  }
+  .fg input, .fg textarea, .fg select{
+    width:100%; font-size:16px; padding:10px;
+    border:2px solid #d0d0d0; border-radius:12px; background:#fff;
+  }
+  .fg input:focus, .fg textarea:focus, .fg select:focus{
+    outline:none; border-color:#667eea;
+  }
+
+  .controls{
+    display:flex; flex-wrap:wrap; gap:8px;
+    justify-content:center; margin-top:12px;
+  }
+  .btn{
+    min-width:110px; height:48px; border:none; border-radius:12px;
+    font-size:16px; font-weight:600; color:#fff;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .p{ background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); }
+  .s{ background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); }
+  .d{ background:linear-gradient(135deg,#ff6b6b 0%,#ff4757 100%); }
+
+  .progress-outer{
+    width:100%; height:28px; background:#e5e5e5;
+    border-radius:12px; border:2px solid #d0d0d0;
+    overflow:hidden; margin:12px 0;
+  }
+  .progress-bar{
+    height:100%; min-width:40px;
+    background:linear-gradient(90deg,#4facfe 0%,#00f2fe 100%);
+    color:#fff; font-size:14px; font-weight:600;
+    display:flex; align-items:center; justify-content:center;
+    white-space:nowrap;
+  }
+
+  .records{
+    max-height:260px; overflow:auto;
+    border-radius:16px; border:2px solid #d0d0d0;
+    background:#fff; padding:8px;
+  }
+  .rec{
+    background:#eef3ff; border-left:4px solid #667eea;
+    border-radius:12px; padding:8px; margin-bottom:8px; color:#222;
+  }
+
+  .wifi{
+    max-height:260px; overflow:auto;
+    border-radius:16px; border:2px solid #d0d0d0;
+    background:#fff; padding:8px;
+  }
+  .wifi-item{
+    border-radius:12px; background:#fff5e6;
+    border:2px solid #f4c389;
+    margin-bottom:8px; padding:8px;
+    display:flex; justify-content:space-between; align-items:flex-start;
+  }
+  .ssid{ font-weight:600; }
+
+  .row{
+    display:flex; justify-content:space-between; align-items:center;
+    background:#fff; border-radius:12px;
+    border:2px solid #d0d0d0; padding:10px 12px; margin-bottom:10px;
+  }
+  .toggle{ position:relative; width:60px; height:34px; }
+  .toggle input{
+    position:absolute; left:0; top:0; width:60px; height:34px;
+    margin:0; opacity:0; cursor:pointer; z-index:2;
+  }
+  .slider{
+    position:absolute; inset:0; background:#ccc;
+    border-radius:34px; transition:.25s;
+  }
+  .slider:before{
+    content:""; position:absolute;
+    height:26px; width:26px; left:4px; top:4px;
+    background:#fff; border-radius:50%; transition:.25s;
+  }
+  .toggle input:checked + .slider{
+    background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
+  }
+  .toggle input:checked + .slider:before{
+    transform:translateX(26px);
+  }
+
+  .alert{
+    position:fixed; top:8px; right:8px;
+    background:#222; color:#fff;
+    padding:8px 12px; font-size:14px; font-weight:600;
+    border-radius:10px; display:none; z-index:5000;
+  }
+
+  .backdrop{
+    position:fixed; inset:0; background:rgba(0,0,0,.5);
+    display:none; align-items:center; justify-content:center;
+    z-index:3000;
+  }
+  .modal{
+    width:260px; max-width:90%;
+    background:#fff; border-radius:16px; border:2px solid #3333;
+    padding:12px; box-shadow:0 20px 50px rgba(0,0,0,.6);
+  }
+  .modal h3{ font-size:16px; margin-bottom:8px; }
+  .modal-row{ margin-top:8px; }
+  .modal-row input{
+    width:100%; font-size:16px; padding:8px;
+    border-radius:12px; border:2px solid #d0d0d0;
+  }
+  .modal-actions{
+    display:flex; gap:8px; justify-content:flex-end; margin-top:10px;
+  }
+  .m-btn{
+    flex:1; min-width:90px; height:40px; border-radius:10px;
+    font-weight:600; color:#fff; border:none;
+  }
+  .m-cancel{ background:linear-gradient(135deg,#f093fb 0%,#f5576c 100%); }
+  .m-ok{ background:linear-gradient(135deg,#667eea 0%,#764ba2 100%); }
+
+  /* Touch Keyboard (optimized for 7") */
+  .kb{
+    position:fixed; left:0; right:0; bottom:0;
+    background:#1e1e1e; color:#fff;
+    padding:8px; border-top-left-radius:16px; border-top-right-radius:16px;
+    box-shadow:0 -10px 30px rgba(0,0,0,.6);
+    display:none; z-index:4000; max-height:42vh; overflow:auto;
+  }
+  .kb-title{ text-align:center; margin-bottom:6px; font-weight:600; font-size:13px; }
+  .kb-keys{ display:grid; grid-template-columns:repeat(10,1fr); gap:6px; }
+  .k{
+    background:#333; border:none; border-radius:10px;
+    padding:9px; font-size:15px; color:#fff; text-align:center;
+  }
+  .k:active{ background:#555; }
+  .k-wide{ grid-column:span 2; }
+
+  /* Dark mode */
+  .dark-mode{
+    background:#1a1f2e; color:#fff;
+  }
+  .dark-mode .header{
+    background:linear-gradient(135deg,#141b3b 0%,#242c4a 100%);
+  }
+  .dark-mode .card,
+  .dark-mode .records,
+  .dark-mode .wifi,
+  .dark-mode .row,
+  .dark-mode .modal{
+    background:#2a3147; color:#fff;
+    border-color:#3f4a6b;
+    box-shadow:0 8px 16px rgba(0,0,0,.9);
+  }
+  .dark-mode .fg label{ color:#fff; }
+  .dark-mode input,
+  .dark-mode textarea,
+  .dark-mode select{
+    background:#1f2537; color:#fff; border-color:#556983;
+  }
+  .dark-mode .alert{ background:#000; color:#fff; }
+
+  /* Splash */
+  #splash{
+    position:fixed; inset:0; background:#0b1222; color:#fff;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    z-index:9999;
+  }
+  #splash h1{ font-size:36px; letter-spacing:.8px; }
+  #splash p{ color:#9bb0ff; margin-top:6px; }
+</style>
+</head>
+<body>
+
+<div id="splash">
+  <h1>DoseMate</h1>
+  <p>Starting…</p>
+</div>
+
+<div class="header">
+  <div>
+    <div class="title">DoseMate Pump</div>
+    <div class="sub">Precision Infusion System</div>
+  </div>
+  <div class="clock">
+    <div id="clockTime">00:00:00</div>
+    <div id="clockDate">Jan 1, 2025</div>
+  </div>
+</div>
+
+<div class="main">
+  <!-- HOME -->
+  <div id="startScreen" class="screen active">
+    <div class="home-grid">
+      <button class="tile" onclick="showScreen('infusionScreen')">
+        <div class="ico">
+          <!-- Start icon -->
+          <svg viewBox="0 0 24 24"><polygon points="8,5 19,12 8,19"/></svg>
+        </div>
+        Start Infusion
+      </button>
+      <button class="tile" onclick="showScreen('monitorScreen')">
+        <div class="ico">
+          <!-- Monitor icon -->
+          <svg viewBox="0 0 24 24"><path d="M4 5h16v11H4z"/><path d="M8 21h8v-2H8z"/></svg>
+        </div>
+        Monitor
+      </button>
+      <button class="tile" onclick="showScreen('recordsScreen')">
+        <div class="ico">
+          <!-- Records icon -->
+          <svg viewBox="0 0 24 24"><path d="M6 3h12v18H6z"/><path d="M8 7h8v2H8zM8 11h8v2H8zM8 15h5v2H8z"/></svg>
+        </div>
+        Records
+      </button>
+      <button class="tile" onclick="showScreen('wifiScreen')">
+        <div class="ico">
+          <!-- WiFi icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M12 18.5a1.5 1.5 0 1 0 0 3 1.5 1.5 0 0 0 0-3z"/>
+            <path d="M4.93 12.93a7.5 7.5 0 0 1 14.14 0l-1.41 1.41a5.5 5.5 0 0 0-11.32 0z"/>
+            <path d="M2.1 9.1A11 11 0 0 1 21.9 9.1l-1.42 1.42A9 9 0 0 0 3.52 10.5z"/>
+          </svg>
+        </div>
+        WiFi
+      </button>
+      <button class="tile" onclick="showScreen('settingsScreen')">
+        <div class="ico">
+          <!-- Settings icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M12 9a3 3 0 1 1 0 6 3 3 0 0 1 0-6z"/>
+            <path d="M4 13h2.1a5.99 5.99 0 0 0 .35 1.2L5 15.65 6.35 17l1.45-1.45c.38.16.78.29 1.2.35V18h2v-2.1a5.99 5.99 0 0 0 1.2-.35L14.65 17 16 15.65 14.55 14.2c.16-.38.29-.78.35-1.2H18v-2h-2.1a5.99 5.99 0 0 0-.35-1.2L16 8.35 14.65 7 13.2 8.45a5.99 5.99 0 0 0-1.2-.35V6h-2v2.1a5.99 5.99 0 0 0-1.2.35L6.35 7 5 8.35 6.45 9.8a5.99 5.99 0 0 0-.35 1.2H4z"/>
+          </svg>
+        </div>
+        Settings
+      </button>
+      <button class="tile" onclick="showScreen('helpScreen')">
+        <div class="ico">
+          <!-- Help icon -->
+          <svg viewBox="0 0 24 24">
+            <path d="M12 2a10 10 0 1 0 .001 20.001A10 10 0 0 0 12 2zm0 17a1.25 1.25 0 1 1 0-2.5 1.25 1.25 0 0 1 0 2.5zm1.2-5.6c-.5.35-.7.6-.7 1.1v.5h-1.5v-.7c0-1 .4-1.6 1.1-2.1.5-.35.9-.7.9-1.3 0-.8-.6-1.3-1.4-1.3-.8 0-1.3.5-1.4 1.3H8.6c.05-1.6 1.3-2.8 3.0-2.8 1.8 0 3 1.1 3 2.7 0 1-.5 1.7-1.4 2.3z"/>
+          </svg>
+        </div>
+        Help
+      </button>
+    </div>
+  </div>
+
+  <!-- INFUSION -->
+  <div id="infusionScreen" class="screen">
+    <div class="section">Infusion Setup</div>
+    <div class="hint">Set syringe size, volume, flow rate, then Start.</div>
+    <form id="infusionForm" class="card">
+      <div class="form2">
+        <div class="fg">
+          <label>Patient Name</label>
+          <input class="ti" data-type="text" id="patientName" required>
+        </div>
+        <div class="fg">
+          <label>Patient ID</label>
+          <input class="ti" data-type="text" id="patientId" required>
+        </div>
+        <div class="fg">
+          <label>Drug Name</label>
+          <input class="ti" data-type="text" id="drugName" required>
+        </div>
+        <div class="fg">
+          <label>Syringe Size</label>
+          <select id="syringeSize" required>
+            <option value="10">10 ml</option>
+            <option value="15">15 ml</option>
+            <option value="20">20 ml</option>
+          </select>
+        </div>
+        <div class="fg">
+          <label>Volume (ml)</label>
+          <input class="ti" data-type="number" id="volume" type="number" min="0.1" step="0.1" required>
+        </div>
+        <div class="fg">
+          <label>Flow Rate (ml/hr)</label>
+          <input class="ti" data-type="number" id="flowRate" type="number" min="0.1" step="0.1" required>
+        </div>
+      </div>
+      <div class="fg" style="margin-top:10px;">
+        <label>Notes</label>
+        <textarea class="ti" data-type="text" id="notes" rows="2" placeholder="Optional"></textarea>
+      </div>
+      <div class="controls">
+        <button class="btn p" type="submit">Start</button>
+        <button class="btn s" type="button" onclick="showScreen('startScreen')">Back</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- MONITOR -->
+  <div id="monitorScreen" class="screen">
+    <div class="section">Infusion Monitor</div>
+    <div class="card">
+      <div id="statusText">Status: Preparing…</div>
+      <div id="timeText" style="font-weight:600;margin-top:4px;">ETA: --:--:--</div>
+    </div>
+    <div class="progress-outer">
+      <div id="progressBar" class="progress-bar">0%</div>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:4px;">Infusion Details</div>
+      <div id="infusionDetails"></div>
+    </div>
+    <div class="controls">
+      <button class="btn p" onclick="pauseInfusion()">Pause</button>
+      <button class="btn p" onclick="resumeInfusion()">Resume</button>
+      <button class="btn d" onclick="cancelInfusion()">Cancel</button>
+      <button class="btn p" id="resetBtn" style="display:none;" onclick="resetPlunger()">Reset</button>
+      <button class="btn s" onclick="showScreen('startScreen')">Back</button>
+    </div>
+  </div>
+
+  <!-- RECORDS -->
+  <div id="recordsScreen" class="screen">
+    <div class="section">Records</div>
+    <div id="recordsContainer" class="records">
+      <div style="text-align:center;color:#888;">No records yet.</div>
+    </div>
+    <div class="controls">
+      <button class="btn p" onclick="loadRecords()">Refresh</button>
+      <!-- These export links are unchanged; backend can add routes later if needed -->
+      <a class="btn p" href="/api/export_records_csv">Export CSV</a>
+      <a class="btn p" href="/api/export_records_json">Export JSON</a>
+      <button class="btn s" onclick="openShare('csv')">Email CSV</button>
+      <button class="btn s" onclick="openShare('json')">Email JSON</button>
+      <button class="btn s" onclick="showScreen('startScreen')">Back</button>
+    </div>
+    <div style="text-align:center;font-size:12px;color:#666;margin-top:6px;">
+      Every export is also saved under <b>/exports</b> on the Pi.
+    </div>
+  </div>
+
+  <!-- WIFI -->
+  <div id="wifiScreen" class="screen">
+    <div class="section">WiFi</div>
+    <div id="wifiList" class="wifi">
+      <div style="text-align:center;color:#888;">Tap "Scan"…</div>
+    </div>
+    <div class="controls">
+      <button class="btn p" onclick="scanNetworks()">Scan</button>
+      <button class="btn s" onclick="showScreen('startScreen')">Back</button>
+    </div>
+  </div>
+
+  <!-- SETTINGS -->
+  <div id="settingsScreen" class="screen">
+    <div class="section">Settings</div>
+    <div class="row">
+      <div>Theme: Dark Mode</div>
+      <div class="toggle">
+        <input type="checkbox" id="darkMode" onchange="toggleDarkMode()">
+        <span class="slider"></span>
+      </div>
+    </div>
+    <div class="row">
+      <div>Auto-Save Records</div>
+      <div class="toggle">
+        <input type="checkbox" id="autoSave" checked>
+        <span class="slider"></span>
+      </div>
+    </div>
+    <div class="row">
+      <div>Auto Retract After Complete</div>
+      <div class="toggle">
+        <input type="checkbox" id="autoRetract" checked>
+        <span class="slider"></span>
+      </div>
+    </div>
+    <div class="controls">
+      <button class="btn s" onclick="showScreen('startScreen')">Back</button>
+    </div>
+  </div>
+
+  <!-- HELP -->
+  <div id="helpScreen" class="screen">
+    <div class="section">Help & Support</div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px;">How to Use</div>
+      <ul style="margin-left:18px; line-height:1.4;">
+        <li>Set syringe size, volume, and flow rate on the Infusion screen.</li>
+        <li>Press Start and monitor progress on the Monitor screen.</li>
+        <li>Use Records → Export / Email to keep patient logs.</li>
+      </ul>
+    </div>
+    <div class="card">
+      <div style="font-weight:600;margin-bottom:6px;">Support</div>
+      <div>Phone: <b>9079747800</b></div>
+      <div>Email: <b>dosematedevice@gmail.com</b></div>
+    </div>
+    <div class="controls">
+      <button class="btn s" onclick="showScreen('startScreen')">Back</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div id="alert" class="alert"></div>
+
+<!-- WiFi Modal -->
+<div id="wifiModal" class="backdrop">
+  <div class="modal">
+    <h3 id="wifiModalTitle">Connect WiFi</h3>
+    <div class="modal-row">
+      <input id="wifiPassword" class="ti" data-type="text" type="password" placeholder="Enter WiFi password">
+    </div>
+    <div class="modal-actions">
+      <button class="m-btn m-cancel" onclick="closeWifiModal()">Cancel</button>
+      <button class="m-btn m-ok" onclick="connectSelectedWifi()">Connect</button>
+    </div>
+  </div>
+</div>
+
+<!-- Share (Email) Modal -->
+<div id="shareModal" class="backdrop">
+  <div class="modal">
+    <h3 id="shareTitle">Share</h3>
+    <div class="modal-row">
+      <input id="shareTo" class="ti" data-type="email"
+             placeholder="Recipient email (e.g. you@host.com)">
+    </div>
+    <div class="modal-actions">
+      <button class="m-btn m-cancel" onclick="closeShare()">Cancel</button>
+      <button class="m-btn m-ok" onclick="sendShare()">Send</button>
+    </div>
+  </div>
+</div>
+
+<!-- Touch Keyboard -->
+<div id="keyboard" class="kb"></div>
+
+<script>
+  // ---------- Splash ----------
+  document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+      const s = document.getElementById('splash');
+      s.style.transition = 'opacity .4s';
+      s.style.opacity = '0';
+      setTimeout(() => { s.style.display = 'none'; }, 450);
+    }, 1200);
+  });
+
+  // ---------- Globals ----------
+  let currentScreen = 'startScreen';
+  let infusionData = {};
+  let infusionInterval = null;
+  let records = JSON.parse(localStorage.getItem('infusionRecords') || '[]');
+  const API_BASE_URL = window.location.origin;
+
+  let selectedNetworkSSID = null;
+  let kbTarget = null, kbType = 'text';
+  let shareKind = 'csv';
+
+  // ---------- Clock ----------
+  function updClock() {
+    const n = new Date();
+    document.getElementById('clockTime').textContent =
+      n.toLocaleTimeString('en-US', {hour12:false,hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    document.getElementById('clockDate').textContent =
+      n.toLocaleDateString('en-US', {month:'short',day:'numeric',year:'numeric'});
+  }
+  setInterval(updClock, 1000); updClock();
+
+  // ---------- Navigation ----------
+  function showScreen(id) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    currentScreen = id;
+  }
+
+  // ---------- Toast ----------
+  function toast(msg, ms=2500) {
+    const a = document.getElementById('alert');
+    a.textContent = msg;
+    a.style.display = 'block';
+    setTimeout(() => { a.style.display = 'none'; }, ms);
+  }
+
+  // ---------- Touch Keyboard ----------
+  function openKb(el){
+    kbTarget = el;
+    kbType = el.dataset.type || 'text';
+    renderKb();
+    const kb = document.getElementById('keyboard');
+    kb.style.display = 'block';
+  }
+  function closeKb(){
+    const kb = document.getElementById('keyboard');
+    kb.style.display = 'none';
+    kbTarget = null;
+  }
+
+  function renderKb(){
+    const k = document.getElementById('keyboard');
+    if(kbType === 'number'){
+      // Numeric keypad (complete)
+      const keys = ['7','8','9','4','5','6','1','2','3','0','.','-','+','⌫','Done'];
+      k.innerHTML =
+        '<div class="kb-title">Numeric Input</div>' +
+        '<div class="kb-keys" style="grid-template-columns:repeat(5,1fr)">' +
+        keys.map(ch => `<button class="k" data-key="${ch}">${ch}</button>`).join('') +
+        '</div>';
+    } else if(kbType === 'email'){
+      // Email-friendly keyboard: full QWERTY + numbers + extra symbols
+      const row1 = '1234567890';
+      const row2 = 'qwertyuiop';
+      const row3 = 'asdfghjkl';
+      const row4 = 'zxcvbnm';
+      const specials = ['@','.', '_','-','+','/','\\',':',';','?','!','#','$','&','*'];
+      let html = '<div class="kb-title">Email Input (QWERTY + symbols)</div><div class="kb-keys">';
+      for(const ch of row1) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      for(const ch of row2) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      for(const ch of row3) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      for(const ch of row4) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      specials.forEach(ch => { html += `<button class="k" data-key="${ch}">${ch}</button>`; });
+      html += `<button class="k k-wide" data-key=" ">Space</button>`;
+      html += `<button class="k" data-key="⌫">⌫</button>`;
+      html += `<button class="k" data-key="Done">Done</button>`;
+      html += '</div>';
+      k.innerHTML = html;
+    } else {
+      // General text keyboard with numbers + specials
+      const row1 = '1234567890';
+      const row2 = 'qwertyuiop';
+      const row3 = 'asdfghjkl';
+      const row4 = 'zxcvbnm';
+      const specials = ['@','.', '_','-','+','/','\\',',',':',';'];
+      let html = '<div class="kb-title">Touch Keyboard</div><div class="kb-keys">';
+      for(const ch of row1) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      for(const ch of row2) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      for(const ch of row3) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      for(const ch of row4) html += `<button class="k" data-key="${ch}">${ch}</button>`;
+      specials.forEach(ch => { html += `<button class="k" data-key="${ch}">${ch}</button>`; });
+      html += `<button class="k k-wide" data-key=" ">Space</button>`;
+      html += `<button class="k" data-key="⌫">⌫</button>`;
+      html += `<button class="k" data-key="Done">Done</button>`;
+      html += '</div>';
+      k.innerHTML = html;
+    }
+
+    // Prevent flicker: handle key presses via mousedown, don't steal focus
+    k.querySelectorAll('button.k').forEach(btn => {
+      btn.addEventListener('mousedown', e => {
+        e.preventDefault();
+        e.stopPropagation();
+        kbPress(btn.getAttribute('data-key'));
+      });
+    });
+  }
+
+  function kbPress(ch){
+    if(!kbTarget) return;
+    if(ch === 'Done'){ closeKb(); return; }
+    if(ch === '⌫'){
+      kbTarget.value = kbTarget.value.slice(0,-1);
+    } else {
+      kbTarget.value += ch;
+    }
+    kbTarget.dispatchEvent(new Event('input'));
+  }
+
+  // Attach keyboard to inputs once
+  document.addEventListener('DOMContentLoaded', () => {
+    document.querySelectorAll('.ti').forEach(inp => {
+      inp.addEventListener('focus', e => {
+        openKb(inp);
+      });
+      inp.addEventListener('mousedown', e => {
+        e.preventDefault();
+        inp.focus();
+        openKb(inp);
+      });
+    });
+  });
+
+  // ---------- Infusion ----------
+  document.getElementById('infusionForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const volume = parseFloat(document.getElementById('volume').value);
+    const flowRate = parseFloat(document.getElementById('flowRate').value);
+    const syringeSize = parseInt(document.getElementById('syringeSize').value, 10);
+    if(!(volume > 0 && flowRate > 0)){
+      toast('Enter valid Volume and Flow Rate');
+      return;
+    }
+
+    infusionData = {
+      patientName: document.getElementById('patientName').value,
+      patientId:   document.getElementById('patientId').value,
+      drugName:    document.getElementById('drugName').value,
+      syringeSize, volume, flowRate,
+      notes:       document.getElementById('notes').value,
+      timestamp:   new Date().toISOString(),
+      startedAt:   new Date().toLocaleString()
+    };
+
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/start_infusion`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({flowRate, volume, syringeSize,
+                             patientName:infusionData.patientName,
+                             patientId:infusionData.patientId,
+                             drugName:infusionData.drugName,
+                             notes:infusionData.notes})
+      });
+      const d = await r.json();
+      if(!r.ok || d.status !== 'started'){
+        toast(d.message || 'Motor start error');
+        return;
+      }
+    }catch(err){
+      toast('Backend not reachable');
+      return;
+    }
+
+    startInfusionUI();
+  });
+
+  function startInfusionUI(){
+    showScreen('monitorScreen');
+    const det =
+      `Patient: ${infusionData.patientName} (ID: ${infusionData.patientId})
+Drug: ${infusionData.drugName}
+Syringe: ${infusionData.syringeSize} ml
+Vol: ${infusionData.volume} ml @ ${infusionData.flowRate} ml/hr
+Start: ${infusionData.startedAt}`;
+    document.getElementById('infusionDetails').innerText = det;
+    document.getElementById('statusText').textContent = 'Status: Running…';
+    document.getElementById('timeText').textContent = 'ETA: --:--:--';
+    if(infusionInterval) clearInterval(infusionInterval);
+    infusionInterval = setInterval(updateProgressFromBackend, 500);
+    toast('Infusion started');
+  }
+
+  async function updateProgressFromBackend(){
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/infusion_status`);
+      if(!r.ok) return;
+      const st = await r.json();
+      const pct = Math.min(Math.max(st.progress_pct || 0, 0), 100);
+      const pb  = document.getElementById('progressBar');
+      pb.style.width = pct + '%';
+      pb.textContent  = Math.floor(pct) + '%';
+
+      const etaStr = `${String(st.eta_h||0).padStart(2,'0')}:` +
+                     `${String(st.eta_m||0).padStart(2,'0')}:` +
+                     `${String(st.eta_s||0).padStart(2,'0')}`;
+      document.getElementById('timeText').textContent = `ETA: ${etaStr}`;
+
+      if(st.paused){
+        document.getElementById('statusText').textContent = 'Status: Paused';
+      } else if(!st.running && pct >= 100 && !st.cancelled){
+        completeInfusionUI();
+      } else if(st.cancelled){
+        document.getElementById('statusText').textContent = 'Status: Cancelled';
+      } else if(st.running){
+        document.getElementById('statusText').textContent = `Status: Running… ${Math.floor(pct)}%`;
+      }
+    }catch(e){
+      // ignore transient
+    }
+  }
+
+  async function pauseInfusion(){
+    try{ await fetch(`${API_BASE_URL}/api/pause_infusion`, {method:'POST'}); }catch(e){}
+    toast('Paused');
+  }
+  async function resumeInfusion(){
+    try{ await fetch(`${API_BASE_URL}/api/resume_infusion`, {method:'POST'}); }catch(e){}
+    toast('Resumed');
+  }
+  async function cancelInfusion(){
+    if(!confirm('Cancel infusion now?')) return;
+    try{ await fetch(`${API_BASE_URL}/api/cancel_infusion`, {method:'POST'}); }catch(e){}
+    if(infusionInterval){ clearInterval(infusionInterval); infusionInterval = null; }
+    document.getElementById('statusText').textContent = 'Status: Cancelled';
+    const pb = document.getElementById('progressBar');
+    pb.style.width = '0%'; pb.textContent = '0%';
+    toast('Cancelled');
+    setTimeout(() => showScreen('startScreen'), 1500);
+  }
+
+  async function completeInfusionUI(){
+    if(infusionInterval){ clearInterval(infusionInterval); infusionInterval = null; }
+    document.getElementById('statusText').textContent = 'Status: Completed';
+    toast('Infusion complete');
+    infusionData.completedAt = new Date().toLocaleString();
+
+    // Auto-save on front-end if enabled
+    if(document.getElementById('autoSave').checked){
+      records.push(infusionData);
+      localStorage.setItem('infusionRecords', JSON.stringify(records));
+      try{
+        await fetch(`${API_BASE_URL}/api/save_record`, {
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body:JSON.stringify(infusionData)
+        });
+      }catch(e){}
+    }
+
+    document.getElementById('resetBtn').style.display = 'flex';
+    if(document.getElementById('autoRetract').checked){
+      resetPlunger();
+    }
+  }
+
+  async function resetPlunger(){
+    toast('Retracting plunger…');
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/reset_plunger`, {method:'POST'});
+      const d = await r.json();
+      if(d.status === 'retracting'){
+        document.getElementById('statusText').textContent = 'Status: Retracting…';
+      }
+    }catch(e){}
+  }
+
+  // ---------- Records ----------
+  async function loadRecords(){
+    const box = document.getElementById('recordsContainer');
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/load_records`);
+      if(r.ok){
+        const srv = await r.json();
+        if(Array.isArray(srv) && srv.length > 0){
+          records = srv;
+          localStorage.setItem('infusionRecords', JSON.stringify(records));
+        }
+      }
+    }catch(e){}
+    records = JSON.parse(localStorage.getItem('infusionRecords') || '[]');
+    if(records.length === 0){
+      box.innerHTML = '<div style="text-align:center;color:#888;">No records yet.</div>';
+      return;
+    }
+    box.innerHTML = '';
+    [...records].reverse().forEach(rec => {
+      const d = document.createElement('div');
+      d.className = 'rec';
+      d.innerHTML =
+        `<div style="font-weight:600;">Patient: ${rec.patientName} (ID: ${rec.patientId})</div>
+<div>Drug: ${rec.drugName}</div>
+<div>Syringe: ${rec.syringeSize} ml</div>
+<div>Infusion: ${rec.volume} ml @ ${rec.flowRate} ml/hr</div>
+<div>Start: ${rec.startedAt || new Date(rec.timestamp).toLocaleString()}</div>
+${rec.completedAt ? `<div>Done: ${rec.completedAt}</div>` : '' }
+${rec.notes ? `<div>Notes: ${rec.notes}</div>` : ''}`;
+      box.appendChild(d);
+    });
+    toast('Records refreshed');
+  }
+
+  // ---------- Share (Email) ----------
+  function openShare(kind){
+    shareKind = kind; // 'csv' or 'json'
+    document.getElementById('shareTitle').textContent =
+      kind === 'csv' ? 'Share CSV Records' : 'Share JSON Records';
+    document.getElementById('shareTo').value = '';
+    document.getElementById('shareModal').style.display = 'flex';
+  }
+  function closeShare(){
+    document.getElementById('shareModal').style.display = 'none';
+  }
+
+  function isValidEmail(addr){
+    // Simple email pattern for basic validation
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(addr);
+  }
+
+  async function sendShare(){
+    const to = document.getElementById('shareTo').value.trim();
+    if(!to){
+      toast('Enter recipient email');
+      return;
+    }
+    if(!isValidEmail(to)){
+      toast('Invalid email format');
+      return;
+    }
+
+    // Backend expects: { to, kind }  -> fixed subject/body in app.py
+    const payload = {
+      to,
+      kind: shareKind  // 'csv' or 'json'
+    };
+
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/email_records`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify(payload)
+      });
+      const d = await r.json();
+      if(r.ok && d.status === 'ok'){
+        toast('Email sent');
+        closeShare();
+      } else {
+        toast(d.message || 'Email failed');
+      }
+    }catch(e){
+      toast('Email failed');
+    }
+  }
+
+  // ---------- WiFi ----------
+  async function scanNetworks(){
+    const list = document.getElementById('wifiList');
+    list.innerHTML = '<div style="text-align:center;color:#888;">Scanning…</div>';
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/scan_wifi`);
+      if(r.ok){
+        const nets = await r.json();
+        if(nets.length === 0){
+          list.innerHTML = '<div style="text-align:center;color:#888;">No networks found.</div>';
+        }else{
+          list.innerHTML = '';
+          nets.forEach(net => {
+            const row = document.createElement('div');
+            row.className = 'wifi-item';
+            row.onclick = () => openWifiModal(net);
+            const icon = (net.signal === 'Weak'
+                          ? '📵' : (net.signal === 'Fair' ? '📡' : '📶'));
+            row.innerHTML =
+              `<div>
+                <div class="ssid">${net.ssid}</div>
+                <div>Sec: ${net.security}</div>
+               </div>
+               <div style="text-align:right;">
+                <div style="font-size:18px">${icon}</div>
+                <div>${net.strength || ''}</div>
+               </div>`;
+            list.appendChild(row);
+          });
+        }
+        toast('Scan complete');
+      } else {
+        throw new Error('backend');
+      }
+    }catch(e){
+      list.innerHTML = '<div style="text-align:center;color:#f33;">Backend not available.</div>';
+      toast('WiFi backend not running',3000);
+    }
+  }
+
+  function openWifiModal(net){
+    selectedNetworkSSID = net.ssid;
+    document.getElementById('wifiModalTitle').textContent = `Connect to ${net.ssid}`;
+    const pf = document.getElementById('wifiPassword');
+    pf.value = '';
+    pf.placeholder = (net.security && net.security.toLowerCase().includes('open'))
+      ? 'Open network (no password)'
+      : 'Enter WiFi password';
+    document.getElementById('wifiModal').style.display = 'flex';
+  }
+  function closeWifiModal(){
+    document.getElementById('wifiModal').style.display = 'none';
+    selectedNetworkSSID = null;
+  }
+  async function connectSelectedWifi(){
+    if(!selectedNetworkSSID) return;
+    const password = document.getElementById('wifiPassword').value;
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/connect_wifi`, {
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ssid:selectedNetworkSSID, password})
+      });
+      const d = await r.json();
+      if(d.status === 'connected'){
+        toast('WiFi connected');
+      } else {
+        toast('WiFi error');
+      }
+    }catch(e){
+      toast('Connect failed');
+    }
+    closeWifiModal();
+  }
+
+  // ---------- Theme ----------
+  function toggleDarkMode(){
+    document.body.classList.toggle('dark-mode');
+    const dark = document.body.classList.contains('dark-mode');
+    localStorage.setItem('darkMode', dark ? 'true' : 'false');
+    toast(dark ? 'Dark mode ON' : 'Light mode ON');
+  }
+
+  // ---------- Init ----------
+  async function checkServerConnection(){
+    try{
+      const r = await fetch(`${API_BASE_URL}/api/system_time`);
+      if(r.ok){ console.log('backend ok'); }
+    }catch(e){
+      console.log('no backend');
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Theme
+    const dark = localStorage.getItem('darkMode') === 'true';
+    if(dark){
+      document.body.classList.add('dark-mode');
+      const dm = document.getElementById('darkMode');
+      if(dm) dm.checked = true;
+    }
+    updClock();
+    loadRecords();
+    checkServerConnection();
+  });
+
+  // Warn if leaving while running
+  window.addEventListener('beforeunload', function(e){
+    if(currentScreen === 'monitorScreen' && infusionInterval){
+      e.preventDefault();
+      e.returnValue = 'Infusion is running. Exit?';
+    }
+  });
+</script>
+</body>
+</html>
