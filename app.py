@@ -26,7 +26,7 @@ def add_cors_headers(response):
 
 # --- Email settings (put your app password in the string below, keep quotes) ---
 SENDER_EMAIL    = "dosematedevice@gmail.com"
-SENDER_PASSWORD = "sfxzgpymqqbokanl"   # <<< REPLACE ONLY inside the quotes
+SENDER_PASSWORD = "sf**********nl"   # <<< REPLACE ONLY inside the quotes
 SMTP_HOST       = "smtp.gmail.com"
 SMTP_PORT       = 587
 USE_TLS         = True
